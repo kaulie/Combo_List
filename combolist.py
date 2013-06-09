@@ -104,25 +104,3 @@ class ComboList():
         return total,tuple(_combolist)
             
         
-
-        
-def test():        
-    def get_total():
-        return 10
-
-    def fetch(start=0,end=10,type=6):
-        print '======type======',type
-        a = [1,2,3,4,5,6,7,8,9,10]
-        return a[start:end] 
-    list = ['aaa','bbb','ccc']
-    maxed_list = ComboList(*list)
-    maxed_list.set_total_fn('aaa', get_total)
-    maxed_list.set_fetch_fn('aaa', fetch,)
-    maxed_list.set_total_fn('bbb', get_total)
-    maxed_list.set_fetch_fn('bbb', fetch,6)
-    maxed_list.set_total_fn('ccc', get_total)
-    maxed_list.set_fetch_fn('ccc', fetch)
-    print maxed_list.join(1, 14)
-
-if __name__ == '__main__':
-    test()
