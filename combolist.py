@@ -4,6 +4,7 @@ Created on 2013-5-2
 分页获取混合列表中各个子列表
 @author: gl
 '''
+import logging
 
 class ComboList():
     
@@ -34,11 +35,24 @@ class ComboList():
             page =1 
         start = (int(page)-1)*count
         return start, start + count
- 
+    
+    
+    def _getTotal(self,listname):
+        assert listname in self._list_names
+        params = self._totalfn_param_dict[listname]
+        list_total = self._totalfn_dict[listname](*params[0],**params[1])
+        return list_total
+    
+    def _getList(self,listname,start,end):
+        assert listname in self._list_names
+        params = self._fetchfn_param_dict[listname]
+        _sublist = self._fetchfn_dict[listname](start=start,end=end,*params[0],**params[1])
+        return _sublist
             
     def join(self,pagenum,pagesize):
         '''
-           获取某页中各个子列表的组成，返回tuple(list1,list2,...listN) 
+           获取列表总数和单页中各个子列表的组成，
+           total,tuple(list1,list2,...listN) 
         '''
         self._check()
         assert isinstance(pagenum,int)
@@ -48,23 +62,29 @@ class ComboList():
         #已经取到的记录个数
         fetch_count = 0 
         #列表的索引号
-        list_index = -1 
+        _index = -1 
         #下一个集合要取的个数
         next_list_fetch_limit = pagesize
         #列表项总数
-        item_count = 0
+        total = 0
         for list_name in self._list_names :
-            list_index += 1
-            t_params = self._fetchfn_param_dict[list_name]
-            item_count += self._totalfn_dict[list_name](*t_params[0],**t_params[1])
-            if item_count > (pagenum-1)*pagesize:
-                if (list_index == 0):
+            _index += 1
+            #单个列表
+            sub_total = self._getTotal(list_name)
+            total += sub_total
+            
+            #列表start = item_count - 
+            if total > (pagenum-1)*pagesize:
+                if (_index == 0):
                     start,end = self._page_range(pagenum, pagesize)
                 else:
-                    start,end = 0,next_list_fetch_limit
-                params = self._fetchfn_param_dict[list_name]
-                _sublist = self._fetchfn_dict[list_name](start=start,end=end,*params[0],**params[1]) or []
+                    offset = (pagenum-1)*pagesize-(total-sub_total)
+                    start = max((offset,0))
+                    end = start + next_list_fetch_limit
+                    
+                _sublist = self._getList(list_name,start,end) or []
                 _combolist.append(_sublist)
+                
                 fetch_count += len(_sublist)
                 if fetch_count >= next_list_fetch_limit:
                     break
@@ -73,9 +93,15 @@ class ComboList():
             else:
                 _combolist.append([])
         
-        for _ in xrange(len(self._list_names)-list_index-1):
-            _combolist.append([])       
-        return tuple(_combolist)
+        #补齐其余列表
+        left_list_num = len(self._list_names)-_index-1
+        for _ in xrange(left_list_num):
+            _index += 1
+            list_name = self._list_names[_index]
+            total += self._getTotal(list_name)
+            _combolist.append([])
+                   
+        return total,tuple(_combolist)
             
         
 
@@ -91,9 +117,9 @@ def test():
     list = ['aaa','bbb','ccc']
     maxed_list = ComboList(*list)
     maxed_list.set_total_fn('aaa', get_total)
-    maxed_list.set_fetch_fn('aaa', fetch,6)
+    maxed_list.set_fetch_fn('aaa', fetch,)
     maxed_list.set_total_fn('bbb', get_total)
-    maxed_list.set_fetch_fn('bbb', fetch)
+    maxed_list.set_fetch_fn('bbb', fetch,6)
     maxed_list.set_total_fn('ccc', get_total)
     maxed_list.set_fetch_fn('ccc', fetch)
     print maxed_list.join(1, 14)
