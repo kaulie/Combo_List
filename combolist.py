@@ -55,8 +55,6 @@ class ComboList():
            total,tuple(list1,list2,...listN) 
         '''
         self._check()
-        assert isinstance(pagenum,int)
-        assert isinstance(pagesize,int)
         
         _combolist = []
         #已经取到的记录个数
